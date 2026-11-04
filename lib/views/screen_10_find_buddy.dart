@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/vizag_data.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bottom_nav.dart';
-import '../models/vizag_models.dart';
 
 class Screen10FindBuddy extends StatefulWidget {
   final Function(String)? onNavigate;
@@ -13,369 +12,403 @@ class Screen10FindBuddy extends StatefulWidget {
 }
 
 class _Screen10FindBuddyState extends State<Screen10FindBuddy> {
-  String selectedCategory = 'All';
-  String selectedLocation = 'Visakhapatnam, Andhra Pradesh';
+  String selectedLocation = 'Visakhapatnam';
+  String sortBy = 'Best Match';
+  final Set<String> _likedBuddies = {'arjun'};
 
-  final List<String> categories = ['All', 'Guides', 'Food', 'Culture', 'Adventure', 'Trekking'];
+  final List<Map<String, dynamic>> preferences = [
+    {'label': 'Nature & Beaches', 'icon': Icons.beach_access_rounded, 'selected': true},
+    {'label': 'Photography', 'icon': Icons.camera_alt_rounded, 'selected': true},
+    {'label': 'Food Exploration', 'icon': Icons.restaurant_rounded, 'selected': true},
+    {'label': 'Adventure Activities', 'icon': Icons.hiking_rounded, 'selected': true},
+    {'label': 'Relaxed Pace', 'icon': Icons.coffee_rounded, 'selected': true},
+    {'label': 'Friendly & Social', 'icon': Icons.people_outline_rounded, 'selected': true},
+  ];
 
-  final List<String> locations = [
-    'Visakhapatnam, Andhra Pradesh',
-    'RK Beach, Vizag',
-    'Rushikonda, Vizag',
-    'Araku Valley, AP',
-    'Bheemili Coast, Vizag',
+  final List<Map<String, dynamic>> buddies = [
+    {
+      'id': 'arjun',
+      'name': 'Arjun Varma',
+      'isVerified': true,
+      'rating': 4.8,
+      'reviews': 32,
+      'distance': '3 km away',
+      'tags': ['Beach', 'Food', 'Heritage'],
+      'avatar': 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&fm=webp&fit=crop&q=80',
+    },
+    {
+      'id': 'rohit',
+      'name': 'Rohit K',
+      'isVerified': true,
+      'rating': 4.6,
+      'reviews': 28,
+      'distance': '5 km away',
+      'tags': ['Culture', 'Food', 'Road Trips'],
+      'avatar': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&fm=webp&fit=crop&q=80',
+    },
+    {
+      'id': 'karthik',
+      'name': 'Karthik Sai',
+      'isVerified': true,
+      'rating': 4.5,
+      'reviews': 18,
+      'distance': '7 km away',
+      'tags': ['Adventure', 'Beaches', 'Nature'],
+      'avatar': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&fm=webp&fit=crop&q=80',
+    },
+    {
+      'id': 'vivek',
+      'name': 'Vivek Sharma',
+      'isVerified': false,
+      'rating': 4.4,
+      'reviews': 14,
+      'distance': '9 km away',
+      'tags': ['Photography', 'Food', 'Shopping'],
+      'avatar': 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=200&fm=webp&fit=crop&q=80',
+    },
   ];
 
   @override
   Widget build(BuildContext context) {
-    final allBuddies = VizagDataService.buddies;
-
-    final filteredBuddies = selectedCategory == 'All'
-        ? allBuddies
-        : allBuddies.where((b) {
-            return b.category.toLowerCase() == selectedCategory.toLowerCase() ||
-                b.tags.any((t) => t.toLowerCase().contains(selectedCategory.toLowerCase())) ||
-                b.skills.any((s) => s.toLowerCase().contains(selectedCategory.toLowerCase()));
-          }).toList();
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0.5,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF0F2942)),
-          onPressed: () => widget.onNavigate?.call('back'),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => widget.onNavigate?.call('07-home'),
         ),
-        title: const Text(
-          'Local Buddies',
-          style: TextStyle(color: Color(0xFF0F2942), fontWeight: FontWeight.bold, fontSize: 18),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Find Your Travel Buddy',
+              style: AppTheme.serifTitle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Choose your preferences and find the perfect buddy',
+              style: AppTheme.sansBody(fontSize: 11, color: AppTheme.textSecondaryLight),
+            ),
+          ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.center_focus_strong_outlined, color: Color(0xFFFF8C00)),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Scanning for nearby local buddies...'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-          ),
-        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: AppTheme.cardBorderColor, height: 1),
+        ),
       ),
-      body: SafeArea(
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 12),
-            const SizedBox(height: 14),
+            // Location Chip
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.cardBorderColor),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.location_on_rounded, color: AppTheme.primaryColor, size: 16),
+                  const SizedBox(width: 4),
+                  Text(
+                    selectedLocation,
+                    style: AppTheme.sansBody(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppTheme.textSecondaryLight),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
 
-            // Location Selector Pill Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: PopupMenuButton<String>(
-                onSelected: (loc) {
-                  setState(() {
-                    selectedLocation = loc;
-                  });
-                },
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                itemBuilder: (context) => locations
-                    .map((loc) => PopupMenuItem(
-                          value: loc,
-                          child: Text(loc, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                        ))
-                    .toList(),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            // Your Preferences Section
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Your Preferences',
+                  style: AppTheme.serifTitle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                InkWell(
+                  onTap: _showEditPreferences,
+                  child: Text(
+                    'Edit',
+                    style: AppTheme.sansBody(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Preference Chips Grid / Wrap
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: preferences.map((p) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFFDBEAFE)),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.cardBorderColor),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0x06231815),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.location_on, color: Color(0xFFFF8C00), size: 18),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          selectedLocation,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFFFF8C00),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      Icon(p['icon'] as IconData, size: 14, color: AppTheme.primaryColor),
+                      const SizedBox(width: 5),
+                      Text(
+                        p['label'] as String,
+                        style: AppTheme.sansBody(fontSize: 11, fontWeight: FontWeight.w600),
                       ),
-                      const SizedBox(width: 6),
-                      const Icon(Icons.keyboard_arrow_down, color: Color(0xFFFF8C00), size: 18),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+
+            // Recommended Buddies Section
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recommended Buddies',
+                  style: AppTheme.serifTitle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                InkWell(
+                  onTap: _showSortModal,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.sort_rounded, size: 14, color: AppTheme.primaryColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Sort',
+                        style: AppTheme.sansBody(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                      ),
                     ],
                   ),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // Horizontal Category Chips
-            SizedBox(
-              height: 38,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: categories.length,
-                itemBuilder: (context, index) {
-                  final cat = categories[index];
-                  final isSelected = selectedCategory == cat;
-
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedCategory = cat;
-                        });
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFFFF8C00) : const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: const Color(0xFFFF8C00).withValues(alpha: 0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: Text(
-                          cat,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                            color: isSelected ? Colors.white : const Color(0xFF475569),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+            // Buddy Cards
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: buddies.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final b = buddies[index];
+                return _buildBuddyCard(b);
+              },
             ),
-            const SizedBox(height: 16),
-
-            // Vertical List of Buddies
-            Expanded(
-              child: filteredBuddies.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade400),
-                          const SizedBox(height: 8),
-                          Text('No buddies found in "$selectedCategory"', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                      itemCount: filteredBuddies.length,
-                      itemBuilder: (context, index) {
-                        final buddy = filteredBuddies[index];
-                        return _buildBuddyCard(buddy);
-                      },
-                    ),
-            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
-      bottomNavigationBar: SharedBottomNav(activeTab: 'buddies', onNavigate: widget.onNavigate),
+      bottomNavigationBar: SharedBottomNav(
+        activeTab: 'buddies',
+        onNavigate: widget.onNavigate,
+      ),
     );
   }
 
-  Widget _buildBuddyCard(BuddyData buddy) {
-    return GestureDetector(
-      onTap: () => widget.onNavigate?.call('11-buddy-profile'),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Square Rounded Profile Avatar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                buddy.avatar,
-                width: 84,
-                height: 84,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 84,
-                    height: 84,
-                    color: const Color(0xFFEFF6FF),
-                    child: const Icon(Icons.person, color: Color(0xFFFF8C00), size: 36),
-                  );
-                },
+  Widget _buildBuddyCard(Map<String, dynamic> b) {
+    final isLiked = _likedBuddies.contains(b['id']);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.cardBorderColor, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x0A231815),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Avatar with verified badge
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.network(
+                  b['avatar'],
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-            const SizedBox(width: 14),
-
-            // Buddy Info Column
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Row 1: Name & Distance
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          buddy.name,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F2942),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on, color: Color(0xFFFF8C00), size: 14),
-                          const SizedBox(width: 2),
-                          Text(
-                            '${buddy.distanceKm} km',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF475569),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-
-                  // Row 2: Specialty / Role
-                  Text(
-                    buddy.specialty,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF64748B),
+              if (b['isVerified'] == true)
+                Positioned(
+                  bottom: -2,
+                  right: -2,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
                     ),
+                    child: const Icon(Icons.verified_rounded, size: 16, color: Color(0xFF1E88E5)),
                   ),
-                  const SizedBox(height: 4),
+                ),
+            ],
+          ),
+          const SizedBox(width: 12),
 
-                  // Row 3: Rating & Trips
-                  Row(
-                    children: [
-                      const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 16),
-                      const SizedBox(width: 3),
-                      Text(
-                        '${buddy.rating}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF0F2942),
-                        ),
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        '(${buddy.reviewsCount}+ trips)',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
+          // Info Column
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      b['name'],
+                      style: AppTheme.serifTitle(fontSize: 14.5, fontWeight: FontWeight.bold),
+                    ),
+                    if (b['isVerified'] == true) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.verified_rounded, size: 14, color: Color(0xFF1E88E5)),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Row 4: Tag Chips & Chat Action Button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Tag Pills
-                      Expanded(
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 4,
-                          children: buddy.tags.take(2).map((tag) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEFF6FF),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                tag,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFFFF8C00),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    const Icon(Icons.star_rounded, size: 14, color: AppTheme.accentGold),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${b['rating']} (${b['reviews']})',
+                      style: AppTheme.sansBody(fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      ' • ${b['distance']}',
+                      style: AppTheme.sansBody(fontSize: 11, color: AppTheme.textSecondaryLight),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 4,
+                  children: (b['tags'] as List<String>).map((t) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.chipBackground,
+                        borderRadius: BorderRadius.circular(6),
                       ),
-
-                      // Chat Button
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF8C00),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        onPressed: () => widget.onNavigate?.call('11-buddy-profile'),
-                        child: const Text(
-                          'Chat',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      child: Text(
+                        t,
+                        style: AppTheme.sansBody(fontSize: 9.5, fontWeight: FontWeight.w600, color: AppTheme.textSecondaryLight),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+
+          // Actions
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (isLiked) {
+                      _likedBuddies.remove(b['id']);
+                    } else {
+                      _likedBuddies.add(b['id']);
+                    }
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    color: isLiked ? Colors.redAccent : AppTheme.textSecondaryLight,
+                    size: 18,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () => widget.onNavigate?.call('11-buddy-profile'),
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    'View Profile',
+                    style: AppTheme.sansBody(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSortModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: ['Best Match', 'Top Rated', 'Nearest First', 'Most Trips'].map((s) {
+              return ListTile(
+                title: Text(s, style: AppTheme.sansBody(fontSize: 14, fontWeight: FontWeight.w600)),
+                trailing: sortBy == s ? const Icon(Icons.check, color: AppTheme.primaryColor) : null,
+                onTap: () {
+                  setState(() => sortBy = s);
+                  Navigator.pop(context);
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showEditPreferences() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Preferences updated based on your recent travels!'),
+        duration: Duration(seconds: 1),
       ),
     );
   }

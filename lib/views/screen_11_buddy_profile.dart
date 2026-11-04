@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bottom_nav.dart';
 
 class Screen11BuddyProfile extends StatefulWidget {
@@ -11,631 +12,954 @@ class Screen11BuddyProfile extends StatefulWidget {
 }
 
 class _Screen11BuddyProfileState extends State<Screen11BuddyProfile> {
-  int _selectedPackageIndex = 0; // 0: Hourly (₹350/hr), 1: Half Day (₹1,200), 2: Full Day (₹2,200)
-  int _selectedDateIndex = 0; // 0: Today, 1: Tomorrow, 2: Day After
-  int _selectedSlotIndex = 0; // 0: Morning, 1: Afternoon, 2: Evening
+  int _activeTabIndex = 0; // 0: About Me, 1: Experience, 2: Reviews
+  bool _isLiked = false;
+  bool _showBookingSheet = false;
 
-  final List<Map<String, String>> _packages = [
-    {'title': 'Hourly Guide', 'rate': '₹350/hr', 'sub': 'Pay per hour spent'},
-    {'title': 'Half-Day Tour', 'rate': '₹1,200', 'sub': '4 Hours Beach & Food'},
-    {'title': 'Full-Day Tour', 'rate': '₹2,200', 'sub': '8 Hours Vizag Explorer'},
+  // Booking Modal State
+  int _selectedPackage = 0; // 0: Hourly (350), 1: Half-Day (1200), 2: Full-Day (2200)
+  int _selectedDate = 0;
+  int _selectedSlot = 0;
+  int _adultsCount = 1;
+  int _childrenCount = 0;
+
+  final List<String> _tags = ['Beaches', 'Trekking', 'Coastal Food', 'Photography', 'Adventure'];
+
+  final List<Map<String, dynamic>> _packages = [
+    {
+      'title': 'Hourly Guide',
+      'price': '₹350/hr',
+      'desc': 'Best for short tours & local exploration',
+      'rateNum': 350,
+    },
+    {
+      'title': 'Half-Day Tour',
+      'price': '₹1,200',
+      'desc': '4 Hours (Beaches & City)',
+      'rateNum': 1200,
+    },
+    {
+      'title': 'Full-Day Tour',
+      'price': '₹2,200',
+      'desc': '8 Hours Vizag Exploration with hidden gems',
+      'rateNum': 2200,
+    },
   ];
 
   final List<Map<String, String>> _dates = [
-    {'day': 'Today', 'date': 'Oct 10'},
-    {'day': 'Tomorrow', 'date': 'Oct 11'},
-    {'day': 'Sun', 'date': 'Oct 12'},
+    {'day': 'Today', 'date': 'Oct 29'},
+    {'day': 'Thu', 'date': 'Oct 30'},
+    {'day': 'Fri', 'date': 'Oct 31'},
+    {'day': 'Sat', 'date': 'Nov 1'},
+    {'day': 'Sun', 'date': 'Nov 2'},
   ];
 
-  final List<Map<String, String>> _timeSlots = [
-    {'slot': 'Morning', 'time': '09:00 AM - 01:00 PM', 'icon': '🌅'},
-    {'slot': 'Afternoon', 'time': '02:00 PM - 06:00 PM', 'icon': '☀️'},
-    {'slot': 'Evening Jam', 'time': '06:00 PM - 09:30 PM', 'icon': '🌙'},
+  final List<Map<String, String>> _slots = [
+    {'title': 'Morning', 'time': '09:00 AM - 01:00 PM'},
+    {'title': 'Afternoon', 'time': '01:00 PM - 06:00 PM'},
+    {'title': 'Evening', 'time': '06:00 PM - 10:00 PM'},
   ];
 
-  void _showBookingConfirmationModal() {
-    final pkg = _packages[_selectedPackageIndex];
-    final date = _dates[_selectedDateIndex];
-    final slot = _timeSlots[_selectedSlotIndex];
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundLight,
+      body: _showBookingSheet ? _buildBookWithArjunView() : _buildProfileView(),
+      bottomNavigationBar: _showBookingSheet
+          ? null
+          : SharedBottomNav(
+              activeTab: 'buddies',
+              onNavigate: widget.onNavigate,
+            ),
+    );
+  }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  // Screen 1: Profile View (Image 2, Top-Middle)
+  Widget _buildProfileView() {
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        // App Bar / Cover Photo
+        SliverAppBar(
+          expandedHeight: 280,
+          pinned: true,
+          backgroundColor: AppTheme.backgroundLight,
+          elevation: 0,
+          leading: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: AppTheme.textPrimaryLight),
+              onPressed: () => widget.onNavigate?.call('10-find-buddy'),
+            ),
           ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
+          actions: [
+            Container(
+              margin: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: Icon(
+                  _isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  color: _isLiked ? Colors.redAccent : AppTheme.textPrimaryLight,
+                  size: 20,
+                ),
+                onPressed: () => setState(() => _isLiked = !_isLiked),
+              ),
+            ),
+          ],
+          flexibleSpace: FlexibleSpaceBar(
+            background: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.network(
+                  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&fm=webp&fit=crop&q=80',
+                  fit: BoxFit.cover,
+                ),
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0x9918100C), Colors.transparent, Color(0xDDFAF4EE)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: [0.0, 0.4, 1.0],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Confirm Buddy Booking',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F2942)),
+                Positioned(
+                  bottom: 12,
+                  left: 20,
+                  right: 20,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Avatar
+                      Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 3),
+                              boxShadow: const [
+                                BoxShadow(color: Color(0x26000000), blurRadius: 8, offset: Offset(0, 3)),
+                              ],
+                            ),
+                            child: const CircleAvatar(
+                              radius: 40,
+                              backgroundImage: NetworkImage(
+                                'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&fm=webp&fit=crop&q=80',
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 2,
+                            right: 2,
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                              child: const Icon(Icons.verified_rounded, color: Color(0xFF1E88E5), size: 18),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  'Arjun Varma',
+                                  style: AppTheme.serifTitle(fontSize: 20, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.successLight,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '● Available Now',
+                                    style: AppTheme.sansBody(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppTheme.successGreen),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              'Local Guide & Trekker',
+                              style: AppTheme.sansBody(fontSize: 12, color: AppTheme.textSecondaryLight),
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                const Icon(Icons.star_rounded, color: AppTheme.accentGold, size: 16),
+                                const SizedBox(width: 2),
+                                Text(
+                                  '4.8 (132 reviews)',
+                                  style: AppTheme.sansBody(fontSize: 11.5, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  ' • 142 Trips',
+                                  style: AppTheme.sansBody(fontSize: 11.5, color: AppTheme.textSecondaryLight),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Review your selected package & schedule',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Body Content
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Location row
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, color: AppTheme.primaryColor, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Visakhapatnam, Andhra Pradesh',
+                      style: AppTheme.sansBody(fontSize: 12, color: AppTheme.textSecondaryLight),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Mini Gallery
+                SizedBox(
+                  height: 60,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=200&fm=webp&fit=crop&q=80',
+                      'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=200&fm=webp&fit=crop&q=80',
+                      'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=200&fm=webp&fit=crop&q=80',
+                      'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=200&fm=webp&fit=crop&q=80',
+                    ].map((img) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(img, width: 60, height: 60, fit: BoxFit.cover),
+                        ),
+                      );
+                    }).toList()
+                      ..add(
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: AppTheme.chipBackground,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.chipBorder),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '+8',
+                              style: AppTheme.sansBody(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Tags Row
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _tags.map((t) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppTheme.cardBorderColor),
+                      ),
+                      child: Text(
+                        t,
+                        style: AppTheme.sansBody(fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 18),
+
+                // Tabs: [About Me | Experience | Reviews]
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppTheme.cardBorderColor),
+                  ),
+                  child: Row(
+                    children: ['About Me', 'Experience', 'Reviews'].asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final title = entry.value;
+                      final isSel = _activeTabIndex == idx;
+                      return Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() => _activeTabIndex = idx),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: isSel ? AppTheme.primaryColor : Colors.transparent,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              title,
+                              style: AppTheme.sansBody(
+                                fontSize: 12,
+                                fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
+                                color: isSel ? Colors.white : AppTheme.textSecondaryLight,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Tab Content: About Me
+                if (_activeTabIndex == 0) ...[
+                  Text(
+                    'About Me',
+                    style: AppTheme.serifTitle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Hi! I'm Arjun, a local from Visakhapatnam. I love exploring beaches, hidden spots and scenic trails. I enjoy meeting new people and helping travellers experience the real Vizag with safety and fun.",
+                    style: AppTheme.sansBody(fontSize: 12.5, color: AppTheme.textSecondaryLight, height: 1.45),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Info Icons Grid
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppTheme.cardBorderColor),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            _buildInfoItem(Icons.cake_rounded, '24', 'Age'),
+                            _buildInfoItem(Icons.school_rounded, 'Graduate', 'Education'),
+                            _buildInfoItem(Icons.work_rounded, '3+ Years', 'Experience'),
+                          ],
+                        ),
+                        const Divider(height: 16, color: AppTheme.cardBorderColor),
+                        Row(
+                          children: [
+                            _buildInfoItem(Icons.translate_rounded, 'English, Telugu, Hindi', 'Languages'),
+                            _buildInfoItem(Icons.groups_rounded, 'Solo / Group', 'Travelling With'),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 18),
+                  const SizedBox(height: 18),
 
-              // Booking Details Summary Card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Column(
+                  // Why Travel with Me?
+                  Text(
+                    'Why Travel with Me?',
+                    style: AppTheme.serifTitle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 2.2,
+                    children: [
+                      _buildWhyCard(Icons.explore_rounded, 'Local Insights', 'Hidden gems & local stories'),
+                      _buildWhyCard(Icons.shield_rounded, 'Safe & Friendly', 'Your safety is my priority'),
+                      _buildWhyCard(Icons.tune_rounded, 'Flexible Itineraries', 'Customized to your interests'),
+                      _buildWhyCard(Icons.camera_alt_rounded, 'Great Photos', 'Capture memorable moments'),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Quote card
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.chipBackground,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.chipBorder),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '"Let\'s explore the real Vizag together!"',
+                        style: AppTheme.serifTitle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ] else if (_activeTabIndex == 1) ...[
+                  Text(
+                    'Experience & Certifications',
+                    style: AppTheme.serifTitle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '• AP Tourism Certified Local Guide\n• 140+ completed guided tours across Araku, Rushikonda, and Yarada\n• Wilderness First Aid & CPR certified\n• Deep knowledge of tribal culture and coastline trails.',
+                    style: AppTheme.sansBody(fontSize: 13, height: 1.6),
+                  ),
+                  const SizedBox(height: 24),
+                ] else ...[
+                  Text(
+                    'Traveller Reviews (132)',
+                    style: AppTheme.serifTitle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildReviewItem('Elena R. (Germany)', 5.0, 'Arjun was wonderful! Showed us scenic spots in Araku that were not in tourist maps. Highly recommended!'),
+                  const SizedBox(height: 8),
+                  _buildReviewItem('Karan S. (Mumbai)', 4.8, 'Very polite, great driver and photographer. Felt super safe exploring Vizag.'),
+                  const SizedBox(height: 24),
+                ],
+
+                // Bottom Floating Action Button Bar
+                Row(
                   children: [
-                    _buildSummaryRow('Buddy', 'Priya Sharma ✓'),
-                    const Divider(height: 16),
-                    _buildSummaryRow('Selected Charge', '${pkg['title']} (${pkg['rate']})'),
-                    const Divider(height: 16),
-                    _buildSummaryRow('Date', '${date['day']}, ${date['date']}'),
-                    const Divider(height: 16),
-                    _buildSummaryRow('Time Slot', '${slot['slot']} (${slot['time']})'),
-                    const Divider(height: 16),
-                    _buildSummaryRow('Payment Option', 'Pay directly to buddy (Cash/UPI)'),
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppTheme.cardBorderColor),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.chat_bubble_outline_rounded, color: AppTheme.primaryColor),
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Starting chat with Arjun Varma...'), duration: Duration(seconds: 1)),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => setState(() => _showBookingSheet = true),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          height: 48,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.primaryGradient,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryColor.withValues(alpha: 0.35),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Book with Arjun',
+                                style: AppTheme.sansBody(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-
-              const SizedBox(height: 20),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
-                      child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('🎉 Booking Confirmed! Connecting with Priya...'),
-                            backgroundColor: Color(0xFF10B981),
-                            duration: Duration(seconds: 3),
-                          ),
-                        );
-                        widget.onNavigate?.call('12-live-tracking');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF8C00),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
-                      child: const Text('Confirm & Start Trip', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSummaryRow(String label, String val) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-        Flexible(
-          child: Text(
-            val,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F2942)),
-            textAlign: TextAlign.right,
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final selectedPkg = _packages[_selectedPackageIndex];
+  // Screen 2: "Book with Arjun" (Image 2, Top-Right)
+  Widget _buildBookWithArjunView() {
+    final pkg = _packages[_selectedPackage];
+    final total = pkg['rateNum'] as int;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0.5,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF0F2942)),
-          onPressed: () => widget.onNavigate?.call('back'),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => setState(() => _showBookingSheet = false),
         ),
-        title: const Text(
-          'Buddy Profile & Booking',
-          style: TextStyle(color: Color(0xFF0F2942), fontWeight: FontWeight.bold, fontSize: 18),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Book with Arjun', style: AppTheme.serifTitle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Choose your experience and plan your trip', style: AppTheme.sansBody(fontSize: 11, color: AppTheme.textSecondaryLight)),
+          ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: Color(0xFFFF8C00)),
+            icon: const Icon(Icons.favorite_border_rounded),
             onPressed: () {},
           ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. BUDDY PROFILE SECTION
-              SizedBox(
-                height: 220,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Image.network(
-                        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&fm=webp&fit=crop&q=60',
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withValues(alpha: 0.75),
-                            ],
-                          ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Packages & Charges
+            Text('Packages & Charges', style: AppTheme.serifTitle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 120,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: _packages.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  final p = _packages[index];
+                  final isSel = _selectedPackage == index;
+                  return InkWell(
+                    onTap: () => setState(() => _selectedPackage = index),
+                    borderRadius: BorderRadius.circular(18),
+                    child: Container(
+                      width: 140,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isSel ? AppTheme.chipBackground : Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: isSel ? AppTheme.primaryColor : AppTheme.cardBorderColor,
+                          width: isSel ? 1.5 : 1,
                         ),
                       ),
-                    ),
-                    Positioned(
-                      bottom: 14,
-                      left: 16,
-                      right: 16,
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          const Column(
+                          Icon(
+                            index == 0 ? Icons.timer_outlined : (index == 1 ? Icons.wb_sunny_outlined : Icons.explore_outlined),
+                            color: AppTheme.primaryColor,
+                            size: 20,
+                          ),
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                'Priya Sharma ✓',
-                                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Licensed Vizag Guide & Classical Dancer',
-                                style: TextStyle(color: Colors.white70, fontSize: 12),
-                              ),
+                              Text(p['title'] as String, style: AppTheme.sansBody(fontSize: 12, fontWeight: FontWeight.bold)),
+                              Text(p['price'] as String, style: AppTheme.serifTitle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
                             ],
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: Colors.amber,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Text(
-                              '5.0 ★ (142)',
-                              style: TextStyle(color: Color(0xFF0F2942), fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
+                          Text(
+                            p['desc'] as String,
+                            style: AppTheme.sansBody(fontSize: 9.5, color: AppTheme.textSecondaryLight),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Select Date
+            Text('Select Date', style: AppTheme.serifTitle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 60,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: _dates.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final d = _dates[index];
+                        final isSel = _selectedDate == index;
+                        return InkWell(
+                          onTap: () => setState(() => _selectedDate = index),
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            width: 60,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isSel ? AppTheme.primaryColor : Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: isSel ? AppTheme.primaryColor : AppTheme.cardBorderColor),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  d['day']!,
+                                  style: AppTheme.sansBody(
+                                    fontSize: 10,
+                                    fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                                    color: isSel ? Colors.white : AppTheme.textSecondaryLight,
+                                  ),
+                                ),
+                                Text(
+                                  d['date']!,
+                                  style: AppTheme.sansBody(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSel ? Colors.white : AppTheme.textPrimaryLight,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 44,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.cardBorderColor),
+                  ),
+                  child: const Icon(Icons.calendar_month_rounded, color: AppTheme.primaryColor, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Select Time Slot
+            Text('Select Time Slot', style: AppTheme.serifTitle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            ..._slots.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final slot = entry.value;
+              final isSel = _selectedSlot == idx;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: InkWell(
+                  onTap: () => setState(() => _selectedSlot = idx),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSel ? AppTheme.primaryColor : AppTheme.cardBorderColor,
+                        width: isSel ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(slot['title']!, style: AppTheme.sansBody(fontSize: 13, fontWeight: FontWeight.bold)),
+                            Text(slot['time']!, style: AppTheme.sansBody(fontSize: 11, color: AppTheme.textSecondaryLight)),
+                          ],
+                        ),
+                        Radio<int>(
+                          value: idx,
+                          groupValue: _selectedSlot,
+                          activeColor: AppTheme.primaryColor,
+                          onChanged: (val) => setState(() => _selectedSlot = val!),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 14),
+
+            // Number of Guests
+            Text('Number of Guests', style: AppTheme.serifTitle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppTheme.cardBorderColor),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.person_outline_rounded, size: 18, color: AppTheme.primaryColor),
+                          const SizedBox(width: 8),
+                          Text('Adults', style: AppTheme.sansBody(fontSize: 13, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                      _buildCounter(
+                        count: _adultsCount,
+                        onDecrement: () {
+                          if (_adultsCount > 1) setState(() => _adultsCount--);
+                        },
+                        onIncrement: () => setState(() => _adultsCount++),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 20, color: AppTheme.cardBorderColor),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.child_care_rounded, size: 18, color: AppTheme.primaryColor),
+                          const SizedBox(width: 8),
+                          Text('Children (Below 12)', style: AppTheme.sansBody(fontSize: 13, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                      _buildCounter(
+                        count: _childrenCount,
+                        onDecrement: () {
+                          if (_childrenCount > 0) setState(() => _childrenCount--);
+                        },
+                        onIncrement: () => setState(() => _childrenCount++),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Summary Card
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.chipBackground,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppTheme.chipBorder),
+              ),
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 20,
+                    backgroundImage: NetworkImage(
+                      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&fm=webp&fit=crop&q=80',
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Hourly Guide with Arjun', style: AppTheme.sansBody(fontSize: 12, fontWeight: FontWeight.bold)),
+                        Text(
+                          '${_dates[_selectedDate]['day']}, ${_dates[_selectedDate]['date']} • ${_slots[_selectedSlot]['title']} • $_adultsCount Adult',
+                          style: AppTheme.sansBody(fontSize: 10.5, color: AppTheme.textSecondaryLight),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    '₹$total',
+                    style: AppTheme.serifTitle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // Add to Cart / Proceed CTA
+            InkWell(
+              onTap: () {
+                setState(() => _showBookingSheet = false);
+                widget.onNavigate?.call('booking-confirmation');
+              },
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                height: 50,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.shopping_cart_checkout_rounded, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Add to Cart ->',
+                      style: AppTheme.sansBody(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
 
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Match Score Banner
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF7ED),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.orange.shade200),
-                      ),
-                      child: Row(
-                        children: const [
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor: Color(0xFFFF8C00),
-                            child: Text('98%', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Matched on Dancing & Coastal Walks', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F2942))),
-                                Text('Shares your passion for beach dance & coastal walks', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
+  Widget _buildInfoItem(IconData icon, String title, String subtitle) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: AppTheme.primaryColor, size: 20),
+          const SizedBox(height: 4),
+          Text(title, style: AppTheme.sansBody(fontSize: 11.5, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+          Text(subtitle, style: AppTheme.sansBody(fontSize: 10, color: AppTheme.textSecondaryLight), textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
 
-                    // Verification Badges Row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
-                            ),
-                            child: Column(
-                              children: const [
-                                Icon(Icons.shield_outlined, color: Color(0xFFFF8C00), size: 20),
-                                SizedBox(height: 4),
-                                Text('Govt. Verified', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF0F2942))),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
-                            ),
-                            child: Column(
-                              children: const [
-                                Icon(Icons.star_rounded, color: Colors.amber, size: 20),
-                                SizedBox(height: 4),
-                                Text('5.0 Star Rated', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF0F2942))),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
-                            ),
-                            child: Column(
-                              children: const [
-                                Icon(Icons.health_and_safety_outlined, color: Color(0xFF10B981), size: 20),
-                                SizedBox(height: 4),
-                                Text('CPR Certified', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF0F2942))),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
+  Widget _buildWhyCard(IconData icon, String title, String desc) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.cardBorderColor),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppTheme.primaryColor, size: 18),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(title, style: AppTheme.sansBody(fontSize: 11, fontWeight: FontWeight.bold), maxLines: 1),
+                Text(desc, style: AppTheme.sansBody(fontSize: 9, color: AppTheme.textSecondaryLight), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    // Bio Text & Interest Tags
-                    const Text(
-                      'Licensed Vizag guide & Kuchipudi classical dancer. Fluent in English, Telugu, and Hindi.',
-                      style: TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4),
-                    ),
-                    const SizedBox(height: 10),
-
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: const [
-                        Chip(label: Text('Dancing 💃', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)), backgroundColor: Color(0xFFFF8C00)),
-                        Chip(label: Text('Coastal Food', style: TextStyle(fontSize: 11)), backgroundColor: Color(0xFFF1F5F9)),
-                        Chip(label: Text('English', style: TextStyle(fontSize: 11)), backgroundColor: Color(0xFFF1F5F9)),
-                        Chip(label: Text('Telugu', style: TextStyle(fontSize: 11)), backgroundColor: Color(0xFFF1F5F9)),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                    const SizedBox(height: 18),
-
-                    // 2. CHARGES SECTION
-                    const Text(
-                      'CHARGES & PACKAGES',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFFF8C00), letterSpacing: 0.5),
-                    ),
-                    const SizedBox(height: 10),
-
-                    Row(
-                      children: List.generate(_packages.length, (idx) {
-                        final pkg = _packages[idx];
-                        final isSelected = _selectedPackageIndex == idx;
-                        return Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _selectedPackageIndex = idx),
-                            child: Container(
-                              margin: EdgeInsets.only(right: idx == _packages.length - 1 ? 0 : 8),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFFFFF7ED) : Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isSelected ? const Color(0xFFFF8C00) : const Color(0xFFE2E8F0),
-                                  width: isSelected ? 2 : 1,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    pkg['title']!,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                                      color: isSelected ? const Color(0xFFFF8C00) : const Color(0xFF0F2942),
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    pkg['rate']!,
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F2942)),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    pkg['sub']!,
-                                    style: const TextStyle(fontSize: 9, color: Color(0xFF64748B)),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // 3. AVAILABILITY & SCHEDULING SECTION
-                    const Text(
-                      'AVAILABILITY & SCHEDULE',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFFF8C00), letterSpacing: 0.5),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Dates
-                    Row(
-                      children: List.generate(_dates.length, (idx) {
-                        final d = _dates[idx];
-                        final isSelected = _selectedDateIndex == idx;
-                        return Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _selectedDateIndex = idx),
-                            child: Container(
-                              margin: EdgeInsets.only(right: idx == _dates.length - 1 ? 0 : 8),
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFF0F2942) : Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: isSelected ? const Color(0xFF0F2942) : const Color(0xFFE2E8F0),
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    d['day']!,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: isSelected ? Colors.white70 : const Color(0xFF64748B),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    d['date']!,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: isSelected ? Colors.white : const Color(0xFF0F2942),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Time Slots
-                    Column(
-                      children: List.generate(_timeSlots.length, (idx) {
-                        final slot = _timeSlots[idx];
-                        final isSelected = _selectedSlotIndex == idx;
-                        return GestureDetector(
-                          onTap: () => setState(() => _selectedSlotIndex = idx),
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFFFFF7ED) : Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: isSelected ? const Color(0xFFFF8C00) : const Color(0xFFE2E8F0),
-                                width: isSelected ? 2 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Text(slot['icon']!, style: const TextStyle(fontSize: 18)),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        slot['slot']!,
-                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F2942)),
-                                      ),
-                                      Text(
-                                        slot['time']!,
-                                        style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(
-                                  isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                                  color: isSelected ? const Color(0xFFFF8C00) : const Color(0xFF94A3B8),
-                                  size: 20,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // 4. BOOKING SUMMARY & PRIMARY ACTION BUTTON
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Rate & Package', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                                  Text(
-                                    selectedPkg['rate']!,
-                                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F2942)),
-                                  ),
-                                ],
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: () {},
-                                icon: const Icon(Icons.chat_bubble_outline, size: 16, color: Color(0xFF0F2942)),
-                                label: const Text('Chat First', style: TextStyle(color: Color(0xFF0F2942), fontWeight: FontWeight.bold, fontSize: 12)),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Color(0xFFE2E8F0)),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: _showBookingConfirmationModal,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF8C00),
-                                foregroundColor: Colors.white,
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.navigation_rounded, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Start Safe Buddy Trip (${selectedPkg['rate']})',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-                  ],
-                ),
+  Widget _buildReviewItem(String name, double rating, String comment) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.cardBorderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(name, style: AppTheme.sansBody(fontSize: 12, fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  const Icon(Icons.star_rounded, size: 14, color: AppTheme.accentGold),
+                  Text('$rating', style: AppTheme.sansBody(fontSize: 11, fontWeight: FontWeight.bold)),
+                ],
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 4),
+          Text(comment, style: AppTheme.sansBody(fontSize: 11, color: AppTheme.textSecondaryLight)),
+        ],
       ),
-      bottomNavigationBar: SharedBottomNav(activeTab: 'buddies', onNavigate: widget.onNavigate),
+    );
+  }
+
+  Widget _buildCounter({required int count, required VoidCallback onDecrement, required VoidCallback onIncrement}) {
+    return Row(
+      children: [
+        InkWell(
+          onTap: onDecrement,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppTheme.cardBorderColor),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.remove, size: 16),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text('$count', style: AppTheme.sansBody(fontSize: 14, fontWeight: FontWeight.bold)),
+        ),
+        InkWell(
+          onTap: onIncrement,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.add, size: 16, color: Colors.white),
+          ),
+        ),
+      ],
     );
   }
 }

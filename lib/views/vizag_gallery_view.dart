@@ -18,6 +18,9 @@ import 'screen_17_buddy_login.dart';
 import 'screen_18_buddy_details.dart';
 import 'screen_19_buddy_ratings.dart';
 import 'screen_20_buddy_leaderboard.dart';
+import 'screen_ai_assistant.dart';
+import 'screen_booking_confirmation.dart';
+import 'screen_checkout_flow.dart';
 
 class VizagGalleryView extends StatefulWidget {
   const VizagGalleryView({super.key});
@@ -27,9 +30,9 @@ class VizagGalleryView extends StatefulWidget {
 }
 
 class _VizagGalleryViewState extends State<VizagGalleryView> {
-  final List<String> _history = ['02-welcome'];
+  final List<String> _history = ['07-home'];
 
-  String get _currentScreenId => _history.isNotEmpty ? _history.last : '02-welcome';
+  String get _currentScreenId => _history.isNotEmpty ? _history.last : '07-home';
 
   static const Map<String, String> _fallbackMap = {
     '03-traveller-signup': '02-welcome',
@@ -51,6 +54,9 @@ class _VizagGalleryViewState extends State<VizagGalleryView> {
     '18-buddy-details': '17-buddy-login',
     '19-buddy-ratings': '18-buddy-details',
     '20-buddy-leaderboard': '19-buddy-ratings',
+    'ai-assistant': '07-home',
+    'booking-confirmation': '07-home',
+    'checkout-options': '08-explore-vizag',
   };
 
   Widget _buildCurrentScreen() {
@@ -95,8 +101,14 @@ class _VizagGalleryViewState extends State<VizagGalleryView> {
         return Screen19BuddyRatings(onNavigate: _navigateTo);
       case '20-buddy-leaderboard':
         return Screen20BuddyLeaderboard(onNavigate: _navigateTo);
+      case 'ai-assistant':
+        return ScreenAiAssistant(onNavigate: _navigateTo);
+      case 'booking-confirmation':
+        return ScreenBookingConfirmation(onNavigate: _navigateTo);
+      case 'checkout-options':
+        return ScreenCheckoutFlow(onNavigate: _navigateTo);
       default:
-        return Screen02Welcome(onNavigate: _navigateTo);
+        return Screen07Home(onNavigate: _navigateTo);
     }
   }
 
